@@ -7,26 +7,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AccountType {
+  USER
+  MERCHANT
+  RESERVE
+  FEE
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  REFUND
+  REVERSAL
+}
+
+enum TransactionStatus {
+  PENDING
+  POSTED
+  FAILED
+  REVERSED
+}
+
 model Account {
-  id        String @id @default(cuid())
-  name      String
-  type      String
-  createdAt DateTime @default(now())
+  id            String        @id @default(cuid())
+  name          String
+  type          AccountType
+  currency      String        @default("USD")
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  ledgerEntries LedgerEntry[]
+
+  @@index([type])
 }
 
 model Transaction {
-  id        String @id @default(cuid())
-  reference String @unique
-  type      String
-  status    String
-  createdAt DateTime @default(now())
+  id          String              @id @default(cuid())
+  reference   String              @unique
+  type        TransactionType
+  status      TransactionStatus
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  ledgerEntries LedgerEntry[]
+
+  @@index([reference])
+  @@index([status])
 }
 
 model LedgerEntry {
-  id            String @id @default(cuid())
-  accountId     String
-  transactionId String
-  debit         Float @default(0)
-  credit        Float @default(0)
-  createdAt     DateTime @default(now())
+  id              String        @id @default(cuid())
+
+  transactionId   String
+  accountId       String
+
+  debit           Decimal       @db.Decimal(18, 2)
+  credit          Decimal       @db.Decimal(18, 2)
+
+  description     String?
+
+  createdAt       DateTime      @default(now())
+
+  transaction     Transaction   @relation(fields: [transactionId], references: [id])
+  account         Account       @relation(fields: [accountId], references: [id])
+
+  @@index([transactionId])
+  @@index([accountId])
 }
