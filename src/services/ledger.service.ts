@@ -1,10 +1,10 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 type TransactionInput = {
   reference: string;
-  type: "transfer" | "deposit" | "withdrawal" | "refund";
+  type: "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "REFUND";
   fromAccountId?: string;
   toAccountId?: string;
   amount: number;
@@ -12,25 +12,23 @@ type TransactionInput = {
 
 export class LedgerService {
   async createTransaction(input: TransactionInput) {
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // 🔒 idempotency check (safe in transaction)
+    return await prisma.$transaction(async (tx) => {
       const existing = await tx.transaction.findUnique({
         where: { reference: input.reference },
       });
 
+      // idempotency check
       if (existing) return existing;
 
-      // 🧾 create transaction record
       const transaction = await tx.transaction.create({
         data: {
           reference: input.reference,
           type: input.type,
-          status: "posted",
+          status: "POSTED",
         },
       });
 
-      // 💳 DOUBLE ENTRY LOGIC
-      if (input.type === "transfer") {
+      if (input.type === "TRANSFER") {
         if (!input.fromAccountId || !input.toAccountId) {
           throw new Error("Transfer requires from + to account");
         }
