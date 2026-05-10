@@ -2,8 +2,10 @@ import { PrismaClient } from "@prisma/client";
 
 import { validateBalancedEntries } from "./validators";
 import { PostTransactionInput } from "./types";
+import { SnapshotService } from "../snapshots/snapshot.service";
 
 const prisma = new PrismaClient();
+const snapshotService = new SnapshotService();
 
 export class PostingService {
   async postTransaction(input: PostTransactionInput) {
@@ -41,6 +43,15 @@ export class PostingService {
             description: entry.description ?? null,
           },
         });
+      }
+
+      // update balance snapshots
+      const affectedAccounts = new Set(
+        input.entries.map((entry) => entry.accountId)
+      );
+
+      for (const accountId of affectedAccounts) {
+        await snapshotService.upsertAccountSnapshot(accountId);
       }
 
       return transaction;

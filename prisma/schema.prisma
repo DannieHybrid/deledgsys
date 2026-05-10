@@ -39,6 +39,7 @@ model Account {
   updatedAt     DateTime      @updatedAt
 
   ledgerEntries LedgerEntry[]
+  snapshots     BalanceSnapshot[]
 
   @@index([type])
 }
@@ -76,4 +77,29 @@ model LedgerEntry {
 
   @@index([transactionId])
   @@index([accountId])
+}
+
+model BalanceSnapshot {
+  id        String   @id @default(cuid())
+  accountId String   @unique
+
+  balance   Decimal  @db.Decimal(18, 2)
+
+  updatedAt DateTime @updatedAt
+
+  account   Account  @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  metadata   Json?
+
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
 }
